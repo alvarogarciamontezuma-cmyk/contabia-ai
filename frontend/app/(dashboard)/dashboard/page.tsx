@@ -1,9 +1,15 @@
+"use client";
+
+import { useContabia } from "@/lib/store/ContabiaContext";
+
 export default function DashboardPage() {
+  const { empresas, cuentas } = useContabia();
+
   const tarjetas = [
     {
       titulo: "Empresas registradas",
-      valor: "0",
-      descripcion: "Sin empresas todavía",
+      valor: String(empresas.length),
+      descripcion: empresas.length === 0 ? "Sin empresas todavía" : `${empresas.filter(e => e.activa).length} activa(s)`,
       color: "border-blue-800",
       icono: "🏢",
     },
@@ -16,8 +22,8 @@ export default function DashboardPage() {
     },
     {
       titulo: "Cuentas activas",
-      valor: "0",
-      descripcion: "Plan de cuentas vacío",
+      valor: String(cuentas.filter(c => c.activa).length),
+      descripcion: cuentas.length === 0 ? "Plan de cuentas vacío" : `${cuentas.length} en total`,
       color: "border-yellow-800",
       icono: "📋",
     },
