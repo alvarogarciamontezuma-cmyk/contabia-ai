@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import type { Empresa } from "@/types/contabilidad";
 
@@ -12,7 +12,8 @@ const etiquetaTipo: Record<string, string> = {
 };
 
 export default function EmpresasPage() {
-  const { empresas, agregarEmpresa } = useContabia();
+  const { empresas, cargandoEmpresas, agregarEmpresa } = useContabia();
+  const [montado, setMontado] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
@@ -21,6 +22,8 @@ export default function EmpresasPage() {
     moneda: "USD",
   });
   const [error, setError] = useState("");
+
+  useEffect(() => { setMontado(true); }, []);
 
   function handleGuardar(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +45,16 @@ export default function EmpresasPage() {
     agregarEmpresa(nueva);
     setForm({ nombre: "", ruc: "", pais: "Panamá", moneda: "USD" });
     setMostrarForm(false);
+  }
+
+  if (!montado || cargandoEmpresas) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-48 bg-gray-800 rounded animate-pulse" />
+        <div className="h-20 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+        <div className="h-20 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+      </div>
+    );
   }
 
   return (

@@ -1,33 +1,39 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useContabia } from "@/lib/store/ContabiaContext";
 
 export default function DashboardPage() {
-  const { empresas, cuentas } = useContabia();
+  const { empresas, cuentas, asientos } = useContabia();
+  const [montado, setMontado] = useState(false);
+
+  useEffect(() => { setMontado(true); }, []);
+
+  const asientosMes = montado ? asientos.filter(a => {
+    const ahora = new Date();
+    const fa = new Date(a.fecha);
+    return fa.getMonth() === ahora.getMonth() && fa.getFullYear() === ahora.getFullYear();
+  }).length : 0;
 
   const tarjetas = [
     {
       titulo: "Empresas registradas",
-      valor: String(empresas.length),
-      descripcion: empresas.length === 0 ? "Sin empresas todavía" : `${empresas.filter(e => e.activa).length} activa(s)`,
+      valor: montado ? String(empresas.length) : "—",
+      descripcion: !montado ? "" : empresas.length === 0 ? "Sin empresas todavía" : `${empresas.filter(e => e.activa).length} activa(s)`,
       color: "border-blue-800",
       icono: "🏢",
     },
     {
       titulo: "Asientos del mes",
-      valor: String(asientos.filter(a => {
-        const ahora = new Date();
-        const fa = new Date(a.fecha);
-        return fa.getMonth() === ahora.getMonth() && fa.getFullYear() === ahora.getFullYear();
-      }).length),
-      descripcion: asientos.length === 0 ? "Sin movimientos" : `${asientos.length} en total`,
+      valor: montado ? String(asientosMes) : "—",
+      descripcion: !montado ? "" : asientos.length === 0 ? "Sin movimientos" : `${asientos.length} en total`,
       color: "border-green-800",
       icono: "📒",
     },
     {
       titulo: "Cuentas activas",
-      valor: String(cuentas.filter(c => c.activa).length),
-      descripcion: cuentas.length === 0 ? "Plan de cuentas vacío" : `${cuentas.length} en total`,
+      valor: montado ? String(cuentas.filter(c => c.activa).length) : "—",
+      descripcion: !montado ? "" : cuentas.length === 0 ? "Plan de cuentas vacío" : `${cuentas.length} en total`,
       color: "border-yellow-800",
       icono: "📋",
     },
@@ -47,21 +53,16 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-2xl font-bold text-white">Panel principal</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Bienvenido a CONTABIA AI · Fase 2 en progreso
+          Bienvenido a CONTABIA AI · Fase 5 — Conectado a Supabase
         </p>
       </div>
 
       {/* Tarjetas de resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {tarjetas.map((t) => (
-          <div
-            key={t.titulo}
-            className={`bg-gray-900 border ${t.color} rounded-xl p-5 space-y-2`}
-          >
+          <div key={t.titulo} className={`bg-gray-900 border ${t.color} rounded-xl p-5 space-y-2`}>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 uppercase tracking-wider">
-                {t.titulo}
-              </span>
+              <span className="text-xs text-gray-500 uppercase tracking-wider">{t.titulo}</span>
               <span className="text-xl">{t.icono}</span>
             </div>
             <p className="text-3xl font-bold text-white">{t.valor}</p>
@@ -72,16 +73,14 @@ export default function DashboardPage() {
 
       {/* Estado del sistema */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-400">
-          Estado del sistema
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-400">Estado del sistema</h3>
         <div className="space-y-2">
           {[
-            { label: "Servidor Next.js", estado: "En línea", color: "bg-green-400" },
-            { label: "Base de datos", estado: "Sin configurar", color: "bg-yellow-400" },
-            { label: "Motor contable", estado: "En desarrollo", color: "bg-gray-600" },
-            { label: "Autenticación", estado: "Simulada (Fase 2)", color: "bg-yellow-400" },
-            { label: "Módulo ITBMS Panamá", estado: "Pendiente", color: "bg-gray-600" },
+            { label: "Servidor Next.js",     estado: "En línea",          color: "bg-green-400" },
+            { label: "Base de datos",         estado: "Supabase conectado", color: "bg-green-400" },
+            { label: "Motor contable",        estado: "Operativo",          color: "bg-green-400" },
+            { label: "Autenticación",         estado: "Simulada (Fase 5)",  color: "bg-yellow-400" },
+            { label: "Módulo ITBMS Panamá",   estado: "Pendiente",          color: "bg-gray-600" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
               <span className={`w-2 h-2 rounded-full shrink-0 ${item.color}`} />
@@ -95,8 +94,8 @@ export default function DashboardPage() {
       {/* Nota de fase */}
       <div className="bg-blue-950 border border-blue-900 rounded-xl p-4">
         <p className="text-sm text-blue-300">
-          <span className="font-semibold">Fase 2 activa</span> — Login y estructura del dashboard completados.
-          La autenticación es simulada. La base de datos y el motor contable se implementarán en fases posteriores.
+          <span className="font-semibold">Fase 5 activa</span> — Datos persistentes en Supabase (PostgreSQL).
+          Los datos se conservan al recargar la página. Autenticación real pendiente para la próxima fase.
         </p>
       </div>
 

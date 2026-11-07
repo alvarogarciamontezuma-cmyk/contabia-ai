@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import type { TipoCuenta } from "@/types/contabilidad";
 
@@ -21,11 +21,14 @@ const colorTipo: Record<TipoCuenta, string> = {
 };
 
 export default function CuentasPage() {
-  const { cuentas, agregarCuenta } = useContabia();
+  const { cuentas, cargandoCuentas, agregarCuenta } = useContabia();
+  const [montado, setMontado] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [filtro, setFiltro] = useState<TipoCuenta | "todas">("todas");
   const [form, setForm] = useState({ codigo: "", nombre: "", tipo: "activo" as TipoCuenta, descripcion: "" });
   const [error, setError] = useState("");
+
+  useEffect(() => { setMontado(true); }, []);
 
   const cuentasFiltradas = filtro === "todas"
     ? cuentas
@@ -53,6 +56,15 @@ export default function CuentasPage() {
 
     setForm({ codigo: "", nombre: "", tipo: "activo", descripcion: "" });
     setMostrarForm(false);
+  }
+
+  if (!montado || cargandoCuentas) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-48 bg-gray-800 rounded animate-pulse" />
+        <div className="h-64 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+      </div>
+    );
   }
 
   return (
