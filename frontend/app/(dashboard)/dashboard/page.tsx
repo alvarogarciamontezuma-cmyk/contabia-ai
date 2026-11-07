@@ -15,8 +15,12 @@ export default function DashboardPage() {
     },
     {
       titulo: "Asientos del mes",
-      valor: "0",
-      descripcion: "Sin movimientos",
+      valor: String(asientos.filter(a => {
+        const ahora = new Date();
+        const fa = new Date(a.fecha);
+        return fa.getMonth() === ahora.getMonth() && fa.getFullYear() === ahora.getFullYear();
+      }).length),
+      descripcion: asientos.length === 0 ? "Sin movimientos" : `${asientos.length} en total`,
       color: "border-green-800",
       icono: "📒",
     },

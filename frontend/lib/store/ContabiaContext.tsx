@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext, useState, ReactNode } from "react";
-import type { Empresa, Cuenta } from "@/types/contabilidad";
+import type { Empresa, Cuenta, Asiento, LineaAsiento } from "@/types/contabilidad";
 
 // ── Datos de demostración ────────────────────────────────────────────────────
 
@@ -22,18 +22,20 @@ const empresasDemo: Empresa[] = [
   },
 ];
 
+const FECHA_DEMO = new Date(2026, 10, 7); // fecha fija, no dinámica
+
 const cuentasDemo: Cuenta[] = [
-  { id: "c-101", codigo: "1.0.00", nombre: "ACTIVO",            tipo: "activo",     activa: true, creadaEn: new Date() },
-  { id: "c-102", codigo: "1.1.01", nombre: "Caja General",      tipo: "activo",     activa: true, creadaEn: new Date() },
-  { id: "c-103", codigo: "1.1.02", nombre: "Banco Nacional",    tipo: "activo",     activa: true, creadaEn: new Date() },
-  { id: "c-201", codigo: "2.0.00", nombre: "PASIVO",            tipo: "pasivo",     activa: true, creadaEn: new Date() },
-  { id: "c-202", codigo: "2.1.01", nombre: "Cuentas por pagar", tipo: "pasivo",     activa: true, creadaEn: new Date() },
-  { id: "c-301", codigo: "3.0.00", nombre: "PATRIMONIO",        tipo: "patrimonio", activa: true, creadaEn: new Date() },
-  { id: "c-302", codigo: "3.1.01", nombre: "Capital social",    tipo: "patrimonio", activa: true, creadaEn: new Date() },
-  { id: "c-401", codigo: "4.0.00", nombre: "INGRESOS",          tipo: "ingreso",    activa: true, creadaEn: new Date() },
-  { id: "c-402", codigo: "4.1.01", nombre: "Ventas",            tipo: "ingreso",    activa: true, creadaEn: new Date() },
-  { id: "c-501", codigo: "5.0.00", nombre: "GASTOS",            tipo: "gasto",      activa: true, creadaEn: new Date() },
-  { id: "c-502", codigo: "5.1.01", nombre: "Gastos generales",  tipo: "gasto",      activa: true, creadaEn: new Date() },
+  { id: "c-101", codigo: "1.0.00", nombre: "ACTIVO",            tipo: "activo",     activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-102", codigo: "1.1.01", nombre: "Caja General",      tipo: "activo",     activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-103", codigo: "1.1.02", nombre: "Banco Nacional",    tipo: "activo",     activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-201", codigo: "2.0.00", nombre: "PASIVO",            tipo: "pasivo",     activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-202", codigo: "2.1.01", nombre: "Cuentas por pagar", tipo: "pasivo",     activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-301", codigo: "3.0.00", nombre: "PATRIMONIO",        tipo: "patrimonio", activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-302", codigo: "3.1.01", nombre: "Capital social",    tipo: "patrimonio", activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-401", codigo: "4.0.00", nombre: "INGRESOS",          tipo: "ingreso",    activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-402", codigo: "4.1.01", nombre: "Ventas",            tipo: "ingreso",    activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-501", codigo: "5.0.00", nombre: "GASTOS",            tipo: "gasto",      activa: true, creadaEn: FECHA_DEMO },
+  { id: "c-502", codigo: "5.1.01", nombre: "Gastos generales",  tipo: "gasto",      activa: true, creadaEn: FECHA_DEMO },
 ];
 
 // ── Tipos del contexto ───────────────────────────────────────────────────────
@@ -44,6 +46,9 @@ interface ContabiaContextType {
 
   cuentas: Cuenta[];
   agregarCuenta: (c: Omit<Cuenta, "id" | "creadaEn">) => void;
+
+  asientos: Asiento[];
+  agregarAsiento: (a: Omit<Asiento, "id" | "creadoEn">) => void;
 }
 
 const ContabiaContext = createContext<ContabiaContextType | null>(null);
@@ -53,26 +58,25 @@ const ContabiaContext = createContext<ContabiaContextType | null>(null);
 export function ContabiaProvider({ children }: { children: ReactNode }) {
   const [empresas, setEmpresas] = useState<Empresa[]>(empresasDemo);
   const [cuentas, setCuentas] = useState<Cuenta[]>(cuentasDemo);
+  const [asientos, setAsientos] = useState<Asiento[]>([]);
 
   function agregarEmpresa(datos: Omit<Empresa, "id">) {
-    const nueva: Empresa = {
-      ...datos,
-      id: `emp-${Date.now()}`,
-    };
+    const nueva: Empresa = { ...datos, id: `emp-${Date.now()}` };
     setEmpresas((prev) => [...prev, nueva]);
   }
 
   function agregarCuenta(datos: Omit<Cuenta, "id" | "creadaEn">) {
-    const nueva: Cuenta = {
-      ...datos,
-      id: `c-${Date.now()}`,
-      creadaEn: new Date(),
-    };
+    const nueva: Cuenta = { ...datos, id: `c-${Date.now()}`, creadaEn: new Date() };
     setCuentas((prev) => [...prev, nueva]);
   }
 
+  function agregarAsiento(datos: Omit<Asiento, "id" | "creadoEn">) {
+    const nuevo: Asiento = { ...datos, id: `ase-${Date.now()}`, creadoEn: new Date() };
+    setAsientos((prev) => [nuevo, ...prev]);
+  }
+
   return (
-    <ContabiaContext.Provider value={{ empresas, agregarEmpresa, cuentas, agregarCuenta }}>
+    <ContabiaContext.Provider value={{ empresas, agregarEmpresa, cuentas, agregarCuenta, asientos, agregarAsiento }}>
       {children}
     </ContabiaContext.Provider>
   );
