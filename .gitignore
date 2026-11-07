@@ -1,0 +1,21 @@
+# Dependencias
+frontend/node_modules/
+frontend/.next/
+
+# Variables de entorno (nunca subir al repositorio)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+*.suo
+*.ntvs*
