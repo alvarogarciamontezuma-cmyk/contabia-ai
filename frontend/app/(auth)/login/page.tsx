@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -28,12 +29,29 @@ export default function LoginPage() {
       return;
     }
 
-    // Simulación de login (Fase 2 — sin autenticación real todavía)
     setLoading(true);
-    setTimeout(() => {
+
+    const supabase = createSupabaseBrowserClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (authError) {
       setLoading(false);
-      router.push("/dashboard");
-    }, 1000);
+      // Traducir mensajes de error comunes
+      if (authError.message.includes("Invalid login credentials")) {
+        setError("Correo o contraseña incorrectos.");
+      } else if (authError.message.includes("Email not confirmed")) {
+        setError("Debes confirmar tu correo electrónico antes de ingresar.");
+      } else {
+        setError("Error al iniciar sesión: " + authError.message);
+      }
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -52,22 +70,14 @@ export default function LoginPage() {
           className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-5"
           noValidate
         >
-          {/* Error */}
           {error && (
-            <div
-              role="alert"
-              className="bg-red-950 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3"
-            >
+            <div role="alert" className="bg-red-950 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3">
               {error}
             </div>
           )}
 
-          {/* Email */}
           <div className="space-y-1">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-300"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
               Correo electrónico
             </label>
             <input
@@ -81,12 +91,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Contraseña */}
           <div className="space-y-1">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-300"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
               Contraseña
             </label>
             <input
@@ -100,7 +106,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Botón */}
           <button
             type="submit"
             disabled={loading}
@@ -110,9 +115,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Nota de desarrollo */}
         <p className="text-center text-xs text-gray-700">
-          Fase 2 — Autenticación simulada · CONTABIA AI
+          CONTABIA AI · Panamá 2026
         </p>
 
       </div>

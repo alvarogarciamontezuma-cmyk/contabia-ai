@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const modulos = [
   {
@@ -29,6 +30,14 @@ const modulos = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleCerrarSesion() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="w-60 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0">
@@ -72,13 +81,13 @@ export default function Sidebar() {
 
       {/* Pie del sidebar */}
       <div className="p-4 border-t border-gray-800">
-        <Link
-          href="/login"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-800 hover:text-white transition w-full"
+        <button
+          onClick={handleCerrarSesion}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-800 hover:text-white transition w-full text-left"
         >
           <span>⏻</span>
           Cerrar sesión
-        </Link>
+        </button>
       </div>
     </aside>
   );
