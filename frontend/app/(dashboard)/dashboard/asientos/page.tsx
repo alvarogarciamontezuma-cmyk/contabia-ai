@@ -6,7 +6,7 @@ import { validarPartidaDoble, formatearMoneda } from "@/lib/contabilidad/motorCo
 import type { LineaAsiento } from "@/types/contabilidad";
 
 function lineaVacia(): LineaAsiento & { _id: string } {
-  return { _id: crypto.randomUUID(), cuentaId: "", descripcion: "", debito: 0, credito: 0 };
+  return { _id: Math.random().toString(36).slice(2), cuentaId: "", descripcion: "", debito: 0, credito: 0 };
 }
 
 type LineaForm = LineaAsiento & { _id: string };
