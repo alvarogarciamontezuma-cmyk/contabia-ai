@@ -2,9 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Middleware de CONTABIA AI — Fase 6
+ * Proxy de CONTABIA AI — Fase 7
  * Protege todas las rutas del dashboard.
  * Si el usuario no tiene sesión activa, redirige al login.
+ * (Renombrado de middleware.ts a proxy.ts — Next.js 16)
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -30,19 +31,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Verificar sesión activa
   const { data: { user } } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
 
-  // Rutas protegidas — requieren sesión
   if (pathname.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Si ya tiene sesión y va al login, redirigir al dashboard
   if (pathname === "/login" && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
