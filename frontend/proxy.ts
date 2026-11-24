@@ -5,9 +5,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * Proxy de CONTABIA AI — Fase 7
  * Protege todas las rutas del dashboard.
  * Si el usuario no tiene sesión activa, redirige al login.
- * (Renombrado de middleware.ts a proxy.ts — Next.js 16)
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
