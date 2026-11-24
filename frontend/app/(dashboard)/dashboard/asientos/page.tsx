@@ -5,9 +5,15 @@ import { useContabia } from "@/lib/store/ContabiaContext";
 import { validarPartidaDoble, formatearMoneda } from "@/lib/contabilidad/motorContable";
 import type { LineaAsiento } from "@/types/contabilidad";
 
-function lineaVacia(): LineaAsiento & { _id: string } {
-  return { _id: Math.random().toString(36).slice(2), cuentaId: "", descripcion: "", debito: 0, credito: 0 };
-}
+// Contador global para IDs únicos — solo se incrementa en el cliente
+let _contadorLinea = 0;
+function nuevoId() { return `linea-${++_contadorLinea}`; }
+
+// Líneas iniciales con IDs fijos y deterministas (no usan Math.random ni crypto)
+const LINEAS_INICIALES: (LineaAsiento & { _id: string })[] = [
+  { _id: "linea-inicial-1", cuentaId: "", descripcion: "", debito: 0, credito: 0 },
+  { _id: "linea-inicial-2", cuentaId: "", descripcion: "", debito: 0, credito: 0 },
+];
 
 type LineaForm = LineaAsiento & { _id: string };
 
@@ -17,7 +23,7 @@ export default function AsientosPage() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [fecha, setFecha] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [lineas, setLineas] = useState<LineaForm[]>([lineaVacia(), lineaVacia()]);
+  const [lineas, setLineas] = useState<LineaForm[]>(LINEAS_INICIALES);
   const [errores, setErrores] = useState<string[]>([]);
   const [guardado, setGuardado] = useState(false);
 
@@ -41,7 +47,7 @@ export default function AsientosPage() {
   }
 
   function agregarLinea() {
-    setLineas((prev) => [...prev, lineaVacia()]);
+    setLineas((prev) => [...prev, { _id: nuevoId(), cuentaId: "", descripcion: "", debito: 0, credito: 0 }]);
   }
 
   function eliminarLinea(id: string) {
@@ -56,7 +62,10 @@ export default function AsientosPage() {
     const dd = String(hoy.getDate()).padStart(2, "0");
     setFecha(`${yyyy}-${mm}-${dd}`);
     setDescripcion("");
-    setLineas([lineaVacia(), lineaVacia()]);
+    setLineas([
+      { _id: "linea-reset-1", cuentaId: "", descripcion: "", debito: 0, credito: 0 },
+      { _id: "linea-reset-2", cuentaId: "", descripcion: "", debito: 0, credito: 0 },
+    ]);
     setErrores([]);
     setGuardado(false);
   }
