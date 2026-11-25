@@ -21,8 +21,9 @@ const modulos = [
     ],
   },
   {
-    grupo: "Sistema",
+    grupo: "Administración",
     items: [
+      { href: "/dashboard/clientes", label: "Clientes", icono: "👥" },
       { href: "/dashboard/configuracion", label: "Configuración", icono: "⚙" },
     ],
   },
