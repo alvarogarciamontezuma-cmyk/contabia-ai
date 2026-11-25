@@ -5,13 +5,13 @@ import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
 import type { TipoCuenta } from "@/types/contabilidad";
 
-const etiquetaTipo: Record<TipoCuenta, string> = {
-  activo:     "Activo",
-  pasivo:     "Pasivo",
-  patrimonio: "Patrimonio",
-  ingreso:    "Ingreso",
-  gasto:      "Gasto",
-};
+type Reporte = "balance-comprobacion" | "estado-resultados" | "balance-general";
+
+const TABS: { id: Reporte; label: string; icono: string }[] = [
+  { id: "balance-comprobacion", label: "Balance de comprobación", icono: "📋" },
+  { id: "estado-resultados",    label: "Estado de resultados",    icono: "📈" },
+  { id: "balance-general",      label: "Balance general",         icono: "⚖" },
+];
 
 const colorTipo: Record<TipoCuenta, string> = {
   activo:     "text-blue-400",
@@ -21,25 +21,15 @@ const colorTipo: Record<TipoCuenta, string> = {
   gasto:      "text-yellow-400",
 };
 
-interface FilaBalance {
-  cuentaId: string;
-  codigo: string;
-  nombre: string;
-  tipo: TipoCuenta;
-  totalDebitos: number;
-  totalCreditos: number;
-  saldo: number;
-}
-
 export default function ReportesPage() {
   const { cuentas, asientos } = useContabia();
   const [montado, setMontado] = useState(false);
+  const [reporte, setReporte] = useState<Reporte>("balance-comprobacion");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
 
   useEffect(() => {
     setMontado(true);
-    // Fecha por defecto: primer día del mes actual hasta hoy
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, "0");
@@ -49,15 +39,10 @@ export default function ReportesPage() {
   }, []);
 
   if (!montado) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-64 bg-gray-800 rounded animate-pulse" />
-        <div className="h-96 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
-      </div>
-    );
+    return <div className="h-64 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />;
   }
 
-  // Filtrar asientos por rango de fechas
+  // Filtrar asientos por período
   const asientosFiltrados = asientos.filter((a) => {
     const fa = new Date(a.fecha);
     const desde = fechaDesde ? new Date(fechaDesde) : null;
@@ -67,40 +52,49 @@ export default function ReportesPage() {
     return true;
   });
 
-  // Calcular totales por cuenta
-  const mapaBalance: Record<string, { debitos: number; creditos: number }> = {};
-
-  asientosFiltrados.forEach((asiento) => {
-    asiento.lineas.forEach((linea) => {
-      if (!mapaBalance[linea.cuentaId]) {
-        mapaBalance[linea.cuentaId] = { debitos: 0, creditos: 0 };
-      }
-      mapaBalance[linea.cuentaId].debitos += linea.debito;
-      mapaBalance[linea.cuentaId].creditos += linea.credito;
+  // Calcular saldos por cuenta
+  const saldos: Record<string, { debitos: number; creditos: number }> = {};
+  asientosFiltrados.forEach((a) => {
+    a.lineas.forEach((l) => {
+      if (!saldos[l.cuentaId]) saldos[l.cuentaId] = { debitos: 0, creditos: 0 };
+      saldos[l.cuentaId].debitos += l.debito;
+      saldos[l.cuentaId].creditos += l.credito;
     });
   });
 
-  // Construir filas del balance
-  const filas: FilaBalance[] = cuentas
-    .filter((c) => c.activa)
-    .map((cuenta) => {
-      const movimientos = mapaBalance[cuenta.id] ?? { debitos: 0, creditos: 0 };
-      const saldo = movimientos.debitos - movimientos.creditos;
-      return {
-        cuentaId: cuenta.id,
-        codigo: cuenta.codigo,
-        nombre: cuenta.nombre,
-        tipo: cuenta.tipo,
-        totalDebitos: movimientos.debitos,
-        totalCreditos: movimientos.creditos,
-        saldo,
-      };
-    })
-    .filter((f) => f.totalDebitos > 0 || f.totalCreditos > 0); // Solo cuentas con movimiento
+  // Agrupar cuentas por tipo con saldos
+  const cuentasPorTipo = (tipo: TipoCuenta) =>
+    cuentas
+      .filter((c) => c.tipo === tipo && c.activa && saldos[c.id])
+      .map((c) => ({
+        ...c,
+        debitos: saldos[c.id]?.debitos ?? 0,
+        creditos: saldos[c.id]?.creditos ?? 0,
+        saldo: (saldos[c.id]?.debitos ?? 0) - (saldos[c.id]?.creditos ?? 0),
+      }));
 
-  // Totales generales
-  const totalDebitos = filas.reduce((s, f) => s + f.totalDebitos, 0);
-  const totalCreditos = filas.reduce((s, f) => s + f.totalCreditos, 0);
+  // Totales por tipo
+  const totalTipo = (tipo: TipoCuenta) =>
+    cuentasPorTipo(tipo).reduce((s, c) => s + Math.abs(c.saldo), 0);
+
+  const totalIngresos  = totalTipo("ingreso");
+  const totalGastos    = totalTipo("gasto");
+  const utilidad       = totalIngresos - totalGastos;
+
+  const totalActivos   = totalTipo("activo");
+  const totalPasivos   = totalTipo("pasivo");
+  const totalPatrimonio = totalTipo("patrimonio");
+  const ecuacionCuadra = Math.round((totalActivos - (totalPasivos + totalPatrimonio + utilidad)) * 100) === 0;
+
+  // Totales balance comprobación
+  const todasCuentas = cuentas.filter(c => c.activa && saldos[c.id]).map(c => ({
+    ...c,
+    debitos: saldos[c.id]?.debitos ?? 0,
+    creditos: saldos[c.id]?.creditos ?? 0,
+    saldo: (saldos[c.id]?.debitos ?? 0) - (saldos[c.id]?.creditos ?? 0),
+  }));
+  const totalDebitos  = todasCuentas.reduce((s, c) => s + c.debitos, 0);
+  const totalCreditos = todasCuentas.reduce((s, c) => s + c.creditos, 0);
   const cuadra = Math.round((totalDebitos - totalCreditos) * 100) === 0;
 
   return (
@@ -108,125 +102,267 @@ export default function ReportesPage() {
 
       {/* Encabezado */}
       <div>
-        <h2 className="text-2xl font-bold text-white">Reportes</h2>
-        <p className="text-sm text-gray-500 mt-1">Balance de comprobación</p>
+        <h2 className="text-2xl font-bold text-white">Reportes financieros</h2>
+        <p className="text-sm text-gray-500 mt-1">Estados financieros del período seleccionado</p>
       </div>
 
       {/* Filtros de fecha */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-wrap gap-4 items-end">
         <div className="space-y-1">
           <label htmlFor="desde" className="block text-xs text-gray-400">Desde</label>
-          <input
-            id="desde"
-            type="date"
-            value={fechaDesde}
-            onChange={(e) => setFechaDesde(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input id="desde" type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="space-y-1">
           <label htmlFor="hasta" className="block text-xs text-gray-400">Hasta</label>
-          <input
-            id="hasta"
-            type="date"
-            value={fechaHasta}
-            onChange={(e) => setFechaHasta(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input id="hasta" type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="text-xs text-gray-500 pb-2">
           {asientosFiltrados.length} asiento{asientosFiltrados.length !== 1 ? "s" : ""} en el período
         </div>
       </div>
 
-      {/* Tabla del balance */}
-      {filas.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-10 text-center">
-          <p className="text-gray-600 text-sm">No hay movimientos en el período seleccionado.</p>
-          <p className="text-gray-700 text-xs mt-1">Registra asientos contables para ver el balance.</p>
-        </div>
-      ) : (
+      {/* Tabs de reportes */}
+      <div className="flex gap-2 flex-wrap">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => setReporte(t.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
+              reporte === t.id ? "bg-blue-600 text-white" : "bg-gray-900 border border-gray-700 text-gray-400 hover:text-white"
+            }`}>
+            <span>{t.icono}</span>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── BALANCE DE COMPROBACIÓN ── */}
+      {reporte === "balance-comprobacion" && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 bg-gray-900">
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase px-5 py-3">Código</th>
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase px-5 py-3">Cuenta</th>
-                <th className="text-left text-xs text-gray-500 font-semibold uppercase px-5 py-3 hidden sm:table-cell">Tipo</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Débitos</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Créditos</th>
-                <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Saldo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              {filas.map((fila) => (
-                <tr key={fila.cuentaId} className="hover:bg-gray-800/50 transition">
-                  <td className="px-5 py-3 font-mono text-gray-400 text-xs">{fila.codigo}</td>
-                  <td className="px-5 py-3 text-white">{fila.nombre}</td>
-                  <td className="px-5 py-3 hidden sm:table-cell">
-                    <span className={`text-xs ${colorTipo[fila.tipo]}`}>
-                      {etiquetaTipo[fila.tipo]}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-300">
-                    {fila.totalDebitos > 0 ? formatearMoneda(fila.totalDebitos) : "—"}
-                  </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-300">
-                    {fila.totalCreditos > 0 ? formatearMoneda(fila.totalCreditos) : "—"}
-                  </td>
-                  <td className={`px-5 py-3 text-right font-mono font-semibold ${
-                    fila.saldo > 0 ? "text-blue-400" : fila.saldo < 0 ? "text-red-400" : "text-gray-500"
-                  }`}>
-                    {formatearMoneda(Math.abs(fila.saldo))}
-                    {fila.saldo < 0 && <span className="text-xs ml-1">(Cr)</span>}
+          {todasCuentas.length === 0 ? (
+            <p className="text-center text-gray-600 text-sm py-10">No hay movimientos en el período.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left text-xs text-gray-500 font-semibold uppercase px-5 py-3">Código</th>
+                  <th className="text-left text-xs text-gray-500 font-semibold uppercase px-5 py-3">Cuenta</th>
+                  <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Débitos</th>
+                  <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Créditos</th>
+                  <th className="text-right text-xs text-gray-500 font-semibold uppercase px-5 py-3">Saldo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                {todasCuentas.map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50 transition">
+                    <td className="px-5 py-3 font-mono text-gray-400 text-xs">{c.codigo}</td>
+                    <td className="px-5 py-3 text-white">{c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-gray-300">{formatearMoneda(c.debitos)}</td>
+                    <td className="px-5 py-3 text-right font-mono text-gray-300">{formatearMoneda(c.creditos)}</td>
+                    <td className={`px-5 py-3 text-right font-mono font-semibold ${c.saldo >= 0 ? "text-blue-400" : "text-red-400"}`}>
+                      {formatearMoneda(Math.abs(c.saldo))}{c.saldo < 0 && <span className="text-xs ml-1">(Cr)</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-700 bg-gray-800/50">
+                  <td colSpan={2} className="px-5 py-3 text-sm font-semibold text-gray-300">TOTALES</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-white">{formatearMoneda(totalDebitos)}</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-white">{formatearMoneda(totalCreditos)}</td>
+                  <td className={`px-5 py-3 text-right font-mono font-bold ${cuadra ? "text-green-400" : "text-red-400"}`}>
+                    {cuadra ? "✓ Cuadrado" : "✗ No cuadra"}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-            {/* Totales */}
-            <tfoot>
-              <tr className="border-t-2 border-gray-700 bg-gray-800/50">
-                <td colSpan={3} className="px-5 py-3 text-sm font-semibold text-gray-300">
-                  TOTALES
-                </td>
-                <td className="px-5 py-3 text-right font-mono font-bold text-white">
-                  {formatearMoneda(totalDebitos)}
-                </td>
-                <td className="px-5 py-3 text-right font-mono font-bold text-white">
-                  {formatearMoneda(totalCreditos)}
-                </td>
-                <td className={`px-5 py-3 text-right font-mono font-bold ${cuadra ? "text-green-400" : "text-red-400"}`}>
-                  {cuadra ? "✓ Cuadrado" : "✗ No cuadra"}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+              </tfoot>
+            </table>
+          )}
         </div>
       )}
 
-      {/* Indicador de partida doble */}
-      {filas.length > 0 && (
-        <div className={`rounded-xl p-4 border text-sm flex items-center justify-between ${
-          cuadra
-            ? "bg-green-950 border-green-800 text-green-300"
-            : "bg-red-950 border-red-800 text-red-300"
-        }`}>
-          <span className="font-medium">
-            {cuadra
-              ? "✓ La contabilidad cuadra — débitos iguales a créditos"
-              : "✗ La contabilidad no cuadra — revisar asientos"}
-          </span>
-          <div className="flex gap-6 font-mono text-xs">
-            <span>Débitos: <strong>{formatearMoneda(totalDebitos)}</strong></span>
-            <span>Créditos: <strong>{formatearMoneda(totalCreditos)}</strong></span>
+      {/* ── ESTADO DE RESULTADOS ── */}
+      {reporte === "estado-resultados" && (
+        <div className="space-y-4">
+          {/* Ingresos */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-800 bg-green-950/30">
+              <h3 className="text-sm font-semibold text-green-400">INGRESOS</h3>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {cuentasPorTipo("ingreso").length === 0 ? (
+                  <tr><td colSpan={2} className="px-5 py-4 text-center text-gray-600">Sin ingresos en el período</td></tr>
+                ) : cuentasPorTipo("ingreso").map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">{c.codigo} {c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-green-400">{formatearMoneda(Math.abs(c.saldo))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700 bg-gray-800/30">
+                  <td className="px-5 py-3 text-sm font-semibold text-white">Total ingresos</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-green-400">{formatearMoneda(totalIngresos)}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
+
+          {/* Gastos */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-800 bg-yellow-950/30">
+              <h3 className="text-sm font-semibold text-yellow-400">GASTOS</h3>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {cuentasPorTipo("gasto").length === 0 ? (
+                  <tr><td colSpan={2} className="px-5 py-4 text-center text-gray-600">Sin gastos en el período</td></tr>
+                ) : cuentasPorTipo("gasto").map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">{c.codigo} {c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-yellow-400">{formatearMoneda(Math.abs(c.saldo))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700 bg-gray-800/30">
+                  <td className="px-5 py-3 text-sm font-semibold text-white">Total gastos</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-yellow-400">{formatearMoneda(totalGastos)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Resultado */}
+          <div className={`rounded-xl p-5 border ${utilidad >= 0 ? "bg-green-950 border-green-800" : "bg-red-950 border-red-800"}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-lg font-bold ${utilidad >= 0 ? "text-green-300" : "text-red-300"}`}>
+                  {utilidad >= 0 ? "UTILIDAD DEL PERÍODO" : "PÉRDIDA DEL PERÍODO"}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Ingresos − Gastos</p>
+              </div>
+              <p className={`text-2xl font-bold font-mono ${utilidad >= 0 ? "text-green-300" : "text-red-300"}`}>
+                {formatearMoneda(Math.abs(utilidad))}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-700">
+            Este reporte es informativo. Debe validarse con un contador antes de usarlo en declaraciones fiscales.
+          </p>
         </div>
       )}
 
-      {/* Nota legal */}
-      <p className="text-xs text-gray-700">
-        Este reporte es informativo. Los cálculos fiscales y legales deben validarse con un profesional contable competente.
-      </p>
+      {/* ── BALANCE GENERAL ── */}
+      {reporte === "balance-general" && (
+        <div className="space-y-4">
+
+          {/* Activos */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-800 bg-blue-950/30">
+              <h3 className="text-sm font-semibold text-blue-400">ACTIVOS</h3>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {cuentasPorTipo("activo").length === 0 ? (
+                  <tr><td colSpan={2} className="px-5 py-4 text-center text-gray-600">Sin movimientos en activos</td></tr>
+                ) : cuentasPorTipo("activo").map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">{c.codigo} {c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-blue-400">{formatearMoneda(Math.abs(c.saldo))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700 bg-gray-800/30">
+                  <td className="px-5 py-3 text-sm font-semibold text-white">Total activos</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-blue-400">{formatearMoneda(totalActivos)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Pasivos */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-800 bg-red-950/30">
+              <h3 className="text-sm font-semibold text-red-400">PASIVOS</h3>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {cuentasPorTipo("pasivo").length === 0 ? (
+                  <tr><td colSpan={2} className="px-5 py-4 text-center text-gray-600">Sin movimientos en pasivos</td></tr>
+                ) : cuentasPorTipo("pasivo").map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">{c.codigo} {c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-red-400">{formatearMoneda(Math.abs(c.saldo))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700 bg-gray-800/30">
+                  <td className="px-5 py-3 text-sm font-semibold text-white">Total pasivos</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-red-400">{formatearMoneda(totalPasivos)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Patrimonio */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-800 bg-purple-950/30">
+              <h3 className="text-sm font-semibold text-purple-400">PATRIMONIO</h3>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {cuentasPorTipo("patrimonio").length === 0 ? (
+                  <tr><td colSpan={2} className="px-5 py-4 text-center text-gray-600">Sin movimientos en patrimonio</td></tr>
+                ) : cuentasPorTipo("patrimonio").map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">{c.codigo} {c.nombre}</td>
+                    <td className="px-5 py-3 text-right font-mono text-purple-400">{formatearMoneda(Math.abs(c.saldo))}</td>
+                  </tr>
+                ))}
+                {utilidad !== 0 && (
+                  <tr className="hover:bg-gray-800/50">
+                    <td className="px-5 py-3 text-white">Utilidad/Pérdida del período</td>
+                    <td className={`px-5 py-3 text-right font-mono ${utilidad >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {formatearMoneda(utilidad)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700 bg-gray-800/30">
+                  <td className="px-5 py-3 text-sm font-semibold text-white">Total patrimonio</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-purple-400">
+                    {formatearMoneda(totalPatrimonio + utilidad)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Ecuación contable */}
+          <div className={`rounded-xl p-4 border ${ecuacionCuadra ? "bg-green-950 border-green-800" : "bg-red-950 border-red-800"}`}>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <span className={`text-sm font-semibold ${ecuacionCuadra ? "text-green-300" : "text-red-300"}`}>
+                {ecuacionCuadra ? "✓ Ecuación contable cuadrada" : "✗ Ecuación no cuadra — revisar asientos"}
+              </span>
+              <div className="flex gap-4 text-xs font-mono flex-wrap">
+                <span className="text-blue-400">Activos: {formatearMoneda(totalActivos)}</span>
+                <span className="text-gray-500">=</span>
+                <span className="text-red-400">Pasivos: {formatearMoneda(totalPasivos)}</span>
+                <span className="text-gray-500">+</span>
+                <span className="text-purple-400">Patrimonio: {formatearMoneda(totalPatrimonio + utilidad)}</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-700">
+            Este reporte es informativo. Debe validarse con un contador antes de presentarlo oficialmente.
+          </p>
+        </div>
+      )}
 
     </div>
   );
