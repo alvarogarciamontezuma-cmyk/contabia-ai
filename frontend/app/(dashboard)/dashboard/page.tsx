@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useContabia } from "@/lib/store/ContabiaContext";
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { empresas, cuentas, asientos } = useContabia();
+  const { empresas, cuentas, asientos, empresaActual } = useContabia();
   const [montado, setMontado] = useState(false);
 
   useEffect(() => { setMontado(true); }, []);
@@ -22,6 +23,7 @@ export default function DashboardPage() {
       descripcion: !montado ? "" : empresas.length === 0 ? "Sin empresas todavía" : `${empresas.filter(e => e.activa).length} activa(s)`,
       color: "border-blue-800",
       icono: "🏢",
+      href: "/dashboard/clientes",
     },
     {
       titulo: "Asientos del mes",
@@ -29,6 +31,7 @@ export default function DashboardPage() {
       descripcion: !montado ? "" : asientos.length === 0 ? "Sin movimientos" : `${asientos.length} en total`,
       color: "border-green-800",
       icono: "📒",
+      href: "/dashboard/asientos",
     },
     {
       titulo: "Cuentas activas",
@@ -36,13 +39,15 @@ export default function DashboardPage() {
       descripcion: !montado ? "" : cuentas.length === 0 ? "Plan de cuentas vacío" : `${cuentas.length} en total`,
       color: "border-yellow-800",
       icono: "📋",
+      href: "/dashboard/cuentas",
     },
     {
-      titulo: "Motor contable",
-      valor: "—",
-      descripcion: "En desarrollo",
-      color: "border-gray-700",
-      icono: "⚙",
+      titulo: "Balance",
+      valor: montado ? (asientos.length > 0 ? "✓" : "—") : "—",
+      descripcion: asientos.length > 0 ? "Ver reporte" : "Sin movimientos",
+      color: "border-purple-800",
+      icono: "📊",
+      href: "/dashboard/reportes",
     },
   ];
 
@@ -53,21 +58,22 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-2xl font-bold text-white">Panel principal</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Bienvenido a CONTABIA AI · Fase 5 — Conectado a Supabase
+          {montado && empresaActual ? empresaActual.nombre : "CONTABIA AI"}
         </p>
       </div>
 
       {/* Tarjetas de resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {tarjetas.map((t) => (
-          <div key={t.titulo} className={`bg-gray-900 border ${t.color} rounded-xl p-5 space-y-2`}>
+          <Link key={t.titulo} href={t.href}
+            className={`bg-gray-900 border ${t.color} rounded-xl p-5 space-y-2 hover:bg-gray-800/50 transition`}>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500 uppercase tracking-wider">{t.titulo}</span>
               <span className="text-xl">{t.icono}</span>
             </div>
             <p className="text-3xl font-bold text-white">{t.valor}</p>
             <p className="text-xs text-gray-600">{t.descripcion}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -76,10 +82,11 @@ export default function DashboardPage() {
         <h3 className="text-sm font-semibold text-gray-400">Estado del sistema</h3>
         <div className="space-y-2">
           {[
-            { label: "Servidor Next.js",     estado: "En línea",          color: "bg-green-400" },
+            { label: "Servidor Next.js",     estado: "En línea",           color: "bg-green-400" },
             { label: "Base de datos",         estado: "Supabase conectado", color: "bg-green-400" },
             { label: "Motor contable",        estado: "Operativo",          color: "bg-green-400" },
-            { label: "Autenticación",         estado: "Simulada (Fase 5)",  color: "bg-yellow-400" },
+            { label: "Autenticación",         estado: "Activa",             color: "bg-green-400" },
+            { label: "Separación por empresa", estado: "RLS activo",        color: "bg-green-400" },
             { label: "Módulo ITBMS Panamá",   estado: "Pendiente",          color: "bg-gray-600" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
@@ -91,12 +98,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Nota de fase */}
-      <div className="bg-blue-950 border border-blue-900 rounded-xl p-4">
-        <p className="text-sm text-blue-300">
-          <span className="font-semibold">Fase 5 activa</span> — Datos persistentes en Supabase (PostgreSQL).
-          Los datos se conservan al recargar la página. Autenticación real pendiente para la próxima fase.
-        </p>
+      {/* Acciones rápidas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link href="/dashboard/asientos"
+          className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:bg-gray-800/50 transition text-center">
+          <p className="text-2xl mb-2">📒</p>
+          <p className="text-sm font-medium text-white">Nuevo asiento</p>
+          <p className="text-xs text-gray-600 mt-1">Registrar movimiento contable</p>
+        </Link>
+        <Link href="/dashboard/clientes"
+          className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:bg-gray-800/50 transition text-center">
+          <p className="text-2xl mb-2">👥</p>
+          <p className="text-sm font-medium text-white">Nuevo cliente</p>
+          <p className="text-xs text-gray-600 mt-1">Crear empresa y usuario</p>
+        </Link>
+        <Link href="/dashboard/reportes"
+          className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:bg-gray-800/50 transition text-center">
+          <p className="text-2xl mb-2">📊</p>
+          <p className="text-sm font-medium text-white">Ver reportes</p>
+          <p className="text-xs text-gray-600 mt-1">Balance de comprobación</p>
+        </Link>
       </div>
 
     </div>

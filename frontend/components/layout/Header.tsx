@@ -10,7 +10,7 @@ export default function Header() {
   return (
     <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6 shrink-0 relative">
 
-      {/* Empresa activa */}
+        {/* Empresa activa */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-500">Empresa:</span>
         <button
