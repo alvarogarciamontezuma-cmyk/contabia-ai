@@ -18,6 +18,7 @@ const modulos = [
       { href: "/dashboard/cuentas", label: "Plan de cuentas", icono: "📋" },
       { href: "/dashboard/asientos", label: "Asientos", icono: "📒" },
       { href: "/dashboard/reportes", label: "Reportes", icono: "📊" },
+      { href: "/dashboard/itbms", label: "ITBMS", icono: "🧾" },
     ],
   },
   {

@@ -32,6 +32,8 @@ export interface LineaAsiento {
   descripcion: string;
   debito: number;
   credito: number;
+  itbms?: number;      // Monto de ITBMS si aplica
+  tasaItbms?: string;  // Tasa aplicada
 }
 
 // Asiento contable completo (partida doble)
