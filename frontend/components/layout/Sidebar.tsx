@@ -33,6 +33,13 @@ const modulos = [
     ],
   },
   {
+    grupo: "Tesorería e inventario",
+    items: [
+      { href: "/dashboard/bancos", label: "Bancos", icono: "🏦" },
+      { href: "/dashboard/inventario", label: "Inventario", icono: "📦" },
+    ],
+  },
+  {
     grupo: "Administración",
     items: [
       { href: "/dashboard/clientes", label: "Clientes plataforma", icono: "👥" },
