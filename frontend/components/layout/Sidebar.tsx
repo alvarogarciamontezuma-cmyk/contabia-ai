@@ -17,6 +17,8 @@ const modulos = [
       { href: "/dashboard/empresas", label: "Empresas", icono: "🏢" },
       { href: "/dashboard/cuentas", label: "Plan de cuentas", icono: "📋" },
       { href: "/dashboard/asientos", label: "Asientos", icono: "📒" },
+      { href: "/dashboard/libros", label: "Libros contables", icono: "📖" },
+      { href: "/dashboard/cierres", label: "Cierres de período", icono: "🔒" },
       { href: "/dashboard/reportes", label: "Reportes", icono: "📊" },
       { href: "/dashboard/itbms", label: "ITBMS", icono: "🧾" },
       { href: "/dashboard/pagos", label: "Mi suscripción", icono: "💳" },
@@ -27,6 +29,7 @@ const modulos = [
     items: [
       { href: "/dashboard/clientes", label: "Clientes", icono: "👥" },
       { href: "/dashboard/admin-pagos", label: "Pagos clientes", icono: "💰" },
+      { href: "/dashboard/auditoria", label: "Auditoría", icono: "🔍" },
       { href: "/dashboard/configuracion", label: "Configuración", icono: "⚙" },
     ],
   },
