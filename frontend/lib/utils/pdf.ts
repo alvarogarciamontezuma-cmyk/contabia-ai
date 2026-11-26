@@ -124,7 +124,7 @@ export function generarFacturaPDF(datos: DatosFacturaPDF): void {
     formatUSD(l.total),
   ]);
 
-  (doc as any).autoTable({
+  const resultado = autoTable(doc, {
     startY: y,
     head: [["Descripción", "Cant.", "P. Unit.", "ITBMS %", "Subtotal", "ITBMS", "Total"]],
     body: filas,
@@ -230,7 +230,7 @@ export function generarReciboPlanillaPDF(params: {
   doc.text(`Período: ${params.periodo}`, margen, 43);
 
   // Tabla de ingresos y deducciones
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: 50,
     head: [["Concepto", "Monto"]],
     body: [
