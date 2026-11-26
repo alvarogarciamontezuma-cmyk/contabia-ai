@@ -171,6 +171,16 @@ export default function EmpleadosPage() {
                       {e.activo ? "Activo" : "Inactivo"}
                     </span>
                   </td>
+                  <td className="px-5 py-3 text-center">
+                    {e.activo && (
+                      <button onClick={async () => {
+                        if (!confirm(`¿Desactivar a "${e.apellido}, ${e.nombre}"?`)) return;
+                        const supabase = createSupabaseBrowserClient();
+                        await supabase.from("empleados").update({ activo: false }).eq("id", e.id);
+                        cargar();
+                      }} className="text-red-400 hover:text-red-300 text-xs transition">Desactivar</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

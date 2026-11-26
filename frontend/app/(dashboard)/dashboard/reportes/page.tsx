@@ -42,6 +42,44 @@ export default function ReportesPage() {
     return <div className="h-64 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />;
   }
 
+  function exportarCSV() {
+    let filas: string[][] = [];
+    if (reporte === "balance-comprobacion") {
+      filas = [
+        ["Código", "Cuenta", "Débitos", "Créditos", "Saldo"],
+        ...todasCuentas.map(c => [c.codigo, c.nombre, String(c.debitos), String(c.creditos), String(c.saldo)]),
+        ["", "TOTALES", String(totalDebitos), String(totalCreditos), ""],
+      ];
+    } else if (reporte === "estado-resultados") {
+      filas = [
+        ["Tipo", "Cuenta", "Monto"],
+        ...cuentasPorTipo("ingreso").map(c => ["Ingreso", `${c.codigo} ${c.nombre}`, String(Math.abs(c.saldo))]),
+        ["", "Total ingresos", String(totalIngresos)],
+        ...cuentasPorTipo("gasto").map(c => ["Gasto", `${c.codigo} ${c.nombre}`, String(Math.abs(c.saldo))]),
+        ["", "Total gastos", String(totalGastos)],
+        ["", utilidad >= 0 ? "UTILIDAD" : "PÉRDIDA", String(Math.abs(utilidad))],
+      ];
+    } else {
+      filas = [
+        ["Tipo", "Cuenta", "Monto"],
+        ...cuentasPorTipo("activo").map(c => ["Activo", `${c.codigo} ${c.nombre}`, String(Math.abs(c.saldo))]),
+        ["", "Total activos", String(totalActivos)],
+        ...cuentasPorTipo("pasivo").map(c => ["Pasivo", `${c.codigo} ${c.nombre}`, String(Math.abs(c.saldo))]),
+        ["", "Total pasivos", String(totalPasivos)],
+        ...cuentasPorTipo("patrimonio").map(c => ["Patrimonio", `${c.codigo} ${c.nombre}`, String(Math.abs(c.saldo))]),
+        ["", "Total patrimonio", String(totalPatrimonio + utilidad)],
+      ];
+    }
+    const csv = filas.map(f => f.map(v => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${reporte}_${fechaDesde}_${fechaHasta}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Filtrar asientos por período
   const asientosFiltrados = asientos.filter((a) => {
     const fa = new Date(a.fecha);
@@ -101,9 +139,21 @@ export default function ReportesPage() {
     <div className="space-y-6">
 
       {/* Encabezado */}
-      <div>
-        <h2 className="text-2xl font-bold text-white">Reportes financieros</h2>
-        <p className="text-sm text-gray-500 mt-1">Estados financieros del período seleccionado</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Reportes financieros</h2>
+          <p className="text-sm text-gray-500 mt-1">Estados financieros del período seleccionado</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => window.print()}
+            className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+            🖨 Imprimir / PDF
+          </button>
+          <button onClick={() => exportarCSV()}
+            className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+            ↓ Exportar CSV
+          </button>
+        </div>
       </div>
 
       {/* Filtros de fecha */}

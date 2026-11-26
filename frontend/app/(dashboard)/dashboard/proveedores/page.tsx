@@ -131,6 +131,16 @@ export default function ProveedoresPage() {
                       {p.activo ? "Activo" : "Inactivo"}
                     </span>
                   </td>
+                  <td className="px-5 py-3 text-center">
+                    {p.activo && (
+                      <button onClick={async () => {
+                        if (!confirm(`¿Desactivar a "${p.nombre}"?`)) return;
+                        const supabase = createSupabaseBrowserClient();
+                        await supabase.from("proveedores").update({ activo: false }).eq("id", p.id);
+                        cargar();
+                      }} className="text-red-400 hover:text-red-300 text-xs transition">Desactivar</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

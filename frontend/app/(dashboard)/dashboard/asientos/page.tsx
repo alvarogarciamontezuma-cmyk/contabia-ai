@@ -235,11 +235,12 @@ export default function AsientosPage() {
         <div className="space-y-3">
           {asientos.map((asiento) => {
             const totalDeb = asiento.lineas.reduce((s, l) => s + l.debito, 0);
+            const esReversion = asiento.descripcion.startsWith("REVERSIÓN:");
             return (
-              <div key={asiento.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+              <div key={asiento.id} className={`bg-gray-900 border rounded-xl p-5 space-y-3 ${esReversion ? "border-yellow-800/50" : "border-gray-800"}`}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-white font-medium">{asiento.descripcion}</p>
+                    <p className={`font-medium ${esReversion ? "text-yellow-400" : "text-white"}`}>{asiento.descripcion}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {new Date(asiento.fecha).toLocaleDateString("es-PA", { year: "numeric", month: "long", day: "numeric" })}
                       {" · "}{asiento.creadoPor}
@@ -248,6 +249,20 @@ export default function AsientosPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-gray-300">{formatearMoneda(totalDeb)}</span>
                     <span className="text-xs bg-green-950 text-green-400 border border-green-800 rounded-full px-2.5 py-1">✓ Cuadrado</span>
+                    {!esReversion && (
+                      <button onClick={async () => {
+                        if (!confirm(`¿Revertir "${asiento.descripcion}"? Se creará un asiento inverso documentado.`)) return;
+                        await agregarAsiento({
+                          fecha: new Date(),
+                          descripcion: `REVERSIÓN: ${asiento.descripcion}`,
+                          lineas: asiento.lineas.map(l => ({ cuentaId: l.cuentaId, descripcion: l.descripcion, debito: l.credito, credito: l.debito })),
+                          confirmado: true,
+                          creadoPor: "Sistema",
+                        });
+                      }} className="text-yellow-400 hover:text-yellow-300 text-xs transition border border-yellow-800 rounded-full px-2.5 py-1">
+                        ↩ Revertir
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="border-t border-gray-800 pt-3">

@@ -173,6 +173,18 @@ export default function DocumentosPage() {
     setUrlVista(data?.signedUrl ?? "");
   }
 
+  async function eliminarDocumento(doc: Documento) {
+    if (!confirm(`¿Seguro que deseas eliminar "${doc.nombre}"? Esta acción no se puede deshacer.`)) return;
+    const supabase = createSupabaseBrowserClient();
+    // Eliminar archivo del storage
+    await supabase.storage.from("documentos").remove([doc.archivo_url]);
+    // Eliminar registro de la base de datos
+    await supabase.from("documentos").delete().eq("id", doc.id);
+    setDocumentoVista(null);
+    setMensaje({ texto: "Documento eliminado.", tipo: "exito" });
+    cargar();
+  }
+
   async function cambiarEstado(id: string, estado: string) {
     const supabase = createSupabaseBrowserClient();
     await supabase.from("documentos").update({ estado }).eq("id", id);
@@ -388,10 +400,27 @@ export default function DocumentosPage() {
 
             {/* Enlace de descarga */}
             {urlVista && (
-              <a href={urlVista} target="_blank" rel="noopener noreferrer"
-                className="block text-center text-blue-400 hover:text-blue-300 text-sm transition">
-                ↓ Abrir en nueva pestaña
-              </a>
+              <div className="flex gap-3 justify-center">
+                <a href={urlVista} target="_blank" rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-sm transition">
+                  ↗ Abrir en nueva pestaña
+                </a>
+                <a href={urlVista} download={documentoVista.archivo_nombre}
+                  className="text-green-400 hover:text-green-300 text-sm transition">
+                  ↓ Descargar archivo
+                </a>
+              </div>
+            )}
+
+            {/* Eliminar documento */}
+            {documentoVista.estado === "pendiente" && (
+              <div className="border-t border-gray-800 pt-4 text-center">
+                <button onClick={() => eliminarDocumento(documentoVista)}
+                  className="text-red-400 hover:text-red-300 text-xs transition">
+                  🗑 Eliminar documento
+                </button>
+                <p className="text-xs text-gray-700 mt-1">Solo documentos pendientes pueden eliminarse.</p>
+              </div>
             )}
           </div>
         </div>

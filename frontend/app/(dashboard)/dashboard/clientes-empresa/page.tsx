@@ -132,6 +132,16 @@ export default function ClientesEmpresaPage() {
                       {c.activo ? "Activo" : "Inactivo"}
                     </span>
                   </td>
+                  <td className="px-5 py-3 text-center">
+                    {c.activo && (
+                      <button onClick={async () => {
+                        if (!confirm(`¿Desactivar a "${c.nombre}"?`)) return;
+                        const supabase = createSupabaseBrowserClient();
+                        await supabase.from("clientes_empresa").update({ activo: false }).eq("id", c.id);
+                        cargarClientes();
+                      }} className="text-red-400 hover:text-red-300 text-xs transition">Desactivar</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

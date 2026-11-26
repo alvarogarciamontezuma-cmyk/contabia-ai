@@ -305,6 +305,18 @@ export default function FacturasPage() {
                       {f.estado.charAt(0).toUpperCase() + f.estado.slice(1)}
                     </span>
                   </td>
+                  <td className="px-5 py-3 text-center">
+                    {f.estado !== "anulada" && (
+                      <button onClick={async () => {
+                        if (!confirm(`¿Anular la factura ${f.numero}? Esta acción no se puede deshacer.`)) return;
+                        const supabase = createSupabaseBrowserClient();
+                        await supabase.from("facturas").update({ estado: "anulada" }).eq("id", f.id);
+                        cargarFacturas();
+                      }} className="text-red-400 hover:text-red-300 text-xs transition">
+                        Anular
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
