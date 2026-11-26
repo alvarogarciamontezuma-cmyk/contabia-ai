@@ -47,6 +47,12 @@ const modulos = [
     ],
   },
   {
+    grupo: "Documentos",
+    items: [
+      { href: "/dashboard/documentos", label: "Documentos", icono: "📁" },
+    ],
+  },
+  {
     grupo: "Administración",
     items: [
       { href: "/dashboard/clientes", label: "Clientes plataforma", icono: "👥" },
