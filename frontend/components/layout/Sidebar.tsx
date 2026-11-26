@@ -19,12 +19,14 @@ const modulos = [
       { href: "/dashboard/asientos", label: "Asientos", icono: "📒" },
       { href: "/dashboard/reportes", label: "Reportes", icono: "📊" },
       { href: "/dashboard/itbms", label: "ITBMS", icono: "🧾" },
+      { href: "/dashboard/pagos", label: "Mi suscripción", icono: "💳" },
     ],
   },
   {
     grupo: "Administración",
     items: [
       { href: "/dashboard/clientes", label: "Clientes", icono: "👥" },
+      { href: "/dashboard/admin-pagos", label: "Pagos clientes", icono: "💰" },
       { href: "/dashboard/configuracion", label: "Configuración", icono: "⚙" },
     ],
   },
