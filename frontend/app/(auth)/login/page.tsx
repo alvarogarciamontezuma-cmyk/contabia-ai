@@ -119,6 +119,13 @@ export default function LoginPage() {
           CONTABIA AI · Panamá 2026
         </p>
 
+        <p className="text-center text-sm text-gray-600">
+          ¿No tienes cuenta?{" "}
+          <a href="/registro" className="text-blue-400 hover:text-blue-300 transition">
+            Regístrate gratis
+          </a>
+        </p>
+
       </div>
     </main>
   );

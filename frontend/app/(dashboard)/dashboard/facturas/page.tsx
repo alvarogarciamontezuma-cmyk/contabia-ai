@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { generarFacturaPDF } from "@/lib/utils/pdf";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
@@ -306,16 +307,45 @@ export default function FacturasPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-center">
-                    {f.estado !== "anulada" && (
+                    <div className="flex gap-2 justify-center">
                       <button onClick={async () => {
-                        if (!confirm(`¿Anular la factura ${f.numero}? Esta acción no se puede deshacer.`)) return;
+                        // Cargar líneas de la factura para el PDF
                         const supabase = createSupabaseBrowserClient();
-                        await supabase.from("facturas").update({ estado: "anulada" }).eq("id", f.id);
-                        cargarFacturas();
-                      }} className="text-red-400 hover:text-red-300 text-xs transition">
-                        Anular
+                        const { data: lineasDB } = await supabase.from("lineas_factura").select("*").eq("factura_id", f.id);
+                        generarFacturaPDF({
+                          empresa: { nombre: empresaActual?.nombre ?? "", ruc: empresaActual?.ruc },
+                          cliente: f.clientes_empresa?.nombre ?? null,
+                          numero: f.numero,
+                          tipo: f.tipo,
+                          fecha: new Date(f.fecha).toLocaleDateString("es-PA"),
+                          fechaVencimiento: f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString("es-PA") : null,
+                          lineas: (lineasDB ?? []).map((l: any) => ({
+                            descripcion: l.descripcion,
+                            cantidad: Number(l.cantidad),
+                            precioUnitario: Number(l.precio_unitario),
+                            itbmsPorcentaje: Number(l.itbms_porcentaje),
+                            subtotal: Number(l.subtotal),
+                            itbmsMonto: Number(l.itbms_monto),
+                            total: Number(l.total),
+                          })),
+                          subtotal: f.subtotal,
+                          itbms: f.itbms,
+                          total: f.total,
+                        });
+                      }} className="text-green-400 hover:text-green-300 text-xs transition">
+                        ↓ PDF
                       </button>
-                    )}
+                      {f.estado !== "anulada" && (
+                        <button onClick={async () => {
+                          if (!confirm(`¿Anular la factura ${f.numero}? Esta acción no se puede deshacer.`)) return;
+                          const supabase = createSupabaseBrowserClient();
+                          await supabase.from("facturas").update({ estado: "anulada" }).eq("id", f.id);
+                          cargarFacturas();
+                        }} className="text-red-400 hover:text-red-300 text-xs transition">
+                          Anular
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

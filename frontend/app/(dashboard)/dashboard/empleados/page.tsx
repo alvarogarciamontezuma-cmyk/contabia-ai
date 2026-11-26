@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
+import { exportarCSV } from "@/lib/utils/pdf";
 
 interface Empleado {
   id: string;
@@ -85,10 +86,20 @@ export default function EmpleadosPage() {
           <h2 className="text-2xl font-bold text-white">Empleados</h2>
           <p className="text-sm text-gray-500 mt-1">{empleados.filter(e => e.activo).length} empleado{empleados.filter(e => e.activo).length !== 1 ? "s" : ""} activo{empleados.filter(e => e.activo).length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
+        <div className="flex gap-2">
+          {empleados.length > 0 && (
+            <button onClick={() => exportarCSV("Empleados",
+              ["Apellido", "Nombre", "Cédula", "Cargo", "Departamento", "Salario Base", "Contrato", "Estado"],
+              empleados.map(e => [e.apellido, e.nombre, e.cedula ?? "", e.cargo ?? "", e.departamento ?? "", e.salario_base, e.tipo_contrato, e.activo ? "Activo" : "Inactivo"])
+            )} className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+              ↓ CSV
+            </button>
+          )}
+          <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
           className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           {mostrarForm ? "Cancelar" : "+ Nuevo empleado"}
         </button>
+        </div>
       </div>
 
       {empleados.length > 0 && (

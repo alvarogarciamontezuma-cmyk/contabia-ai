@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
 import { calcularPlanillaEmpleado, TASAS_PANAMA } from "@/lib/contabilidad/planilla";
+import { generarReciboPlanillaPDF, exportarCSV } from "@/lib/utils/pdf";
 
 interface Empleado { id: string; nombre: string; apellido: string; salario_base: number; }
 
@@ -281,6 +282,45 @@ export default function PlanillaPage() {
                     <span className={`text-xs border rounded-full px-2.5 py-1 ${p.estado === "pagada" ? "bg-green-950 text-green-400 border-green-800" : p.estado === "aprobada" ? "bg-blue-950 text-blue-400 border-blue-800" : "bg-gray-800 text-gray-500 border-gray-700"}`}>
                       {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
                     </span>
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    <button onClick={async () => {
+                      const supabase = createSupabaseBrowserClient();
+                      const { data: lineas } = await supabase
+                        .from("lineas_planilla")
+                        .select("*, empleados(nombre, apellido)")
+                        .eq("planilla_id", p.id);
+                      (lineas ?? []).forEach((l: any) => {
+                        generarReciboPlanillaPDF({
+                          empresa: { nombre: empresaActual?.nombre ?? "", ruc: empresaActual?.ruc },
+                          empleado: `${l.empleados?.apellido ?? ""}, ${l.empleados?.nombre ?? ""}`,
+                          periodo: p.periodo,
+                          salarioBase: Number(l.salario_base),
+                          horasExtra: Number(l.horas_extra),
+                          montoHorasExtra: Number(l.monto_horas_extra),
+                          otrosIngresos: Number(l.otros_ingresos),
+                          totalIngresos: Number(l.total_ingresos),
+                          cssEmpleado: Number(l.css_empleado),
+                          seguroEducativo: Number(l.seguro_educativo),
+                          impuestoRenta: Number(l.impuesto_renta),
+                          otrasDeducciones: Number(l.otras_deducciones),
+                          totalDeducciones: Number(l.total_deducciones),
+                          salarioNeto: Number(l.salario_neto),
+                          decimoTercerMes: Number(l.decimo_tercer_mes),
+                        });
+                      });
+                      exportarCSV(
+                        `Planilla_${p.periodo}`,
+                        ["Empleado", "Bruto", "CSS", "Seg.Edu", "ISR", "Deducciones", "Neto", "Décimo"],
+                        (lineas ?? []).map((l: any) => [
+                          `${l.empleados?.apellido ?? ""}, ${l.empleados?.nombre ?? ""}`,
+                          l.total_ingresos, l.css_empleado, l.seguro_educativo,
+                          l.impuesto_renta, l.total_deducciones, l.salario_neto, l.decimo_tercer_mes,
+                        ])
+                      );
+                    }} className="text-green-400 hover:text-green-300 text-xs transition">
+                      ↓ Recibos + CSV
+                    </button>
                   </td>
                 </tr>
               ))}

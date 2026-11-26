@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
+import { exportarCSV } from "@/lib/utils/pdf";
 
 interface Producto {
   id: string;
@@ -167,6 +168,14 @@ export default function InventarioPage() {
         <button onClick={() => setVista("movimientos")} className={`px-4 py-2 rounded-lg text-sm transition ${vista === "movimientos" ? "bg-blue-600 text-white" : "bg-gray-900 border border-gray-700 text-gray-400 hover:text-white"}`}>
           🔄 Movimientos
         </button>
+        {productos.length > 0 && (
+          <button onClick={() => exportarCSV("Inventario",
+            ["Código", "Nombre", "Tipo", "Precio", "Costo", "Stock", "Unidad", "ITBMS%"],
+            productos.map(p => [p.codigo ?? "", p.nombre, p.tipo, p.precio_venta, p.costo, p.stock_actual, p.unidad, p.itbms_porcentaje])
+          )} className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+            ↓ CSV
+          </button>
+        )}
       </div>
 
       {/* ── PRODUCTOS ── */}

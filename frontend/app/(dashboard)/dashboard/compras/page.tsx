@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
 import { formatearMoneda } from "@/lib/contabilidad/motorContable";
+import { exportarCSV } from "@/lib/utils/pdf";
 
 interface Proveedor { id: string; nombre: string; }
 
@@ -120,10 +121,20 @@ export default function ComprasPage() {
           <h2 className="text-2xl font-bold text-white">Compras</h2>
           <p className="text-sm text-gray-500 mt-1">{compras.length} compra{compras.length !== 1 ? "s" : ""} registrada{compras.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
+        <div className="flex gap-2">
+          {compras.length > 0 && (
+            <button onClick={() => exportarCSV("Compras",
+              ["Proveedor", "N° Factura", "Fecha", "Subtotal", "ITBMS", "Total", "Estado"],
+              compras.map(c => [c.proveedores?.nombre ?? "", c.numero ?? "", c.fecha, c.subtotal, c.itbms, c.total, c.estado])
+            )} className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+              ↓ CSV
+            </button>
+          )}
+          <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
           className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           {mostrarForm ? "Cancelar" : "+ Registrar compra"}
         </button>
+        </div>
       </div>
 
       {/* Resumen */}

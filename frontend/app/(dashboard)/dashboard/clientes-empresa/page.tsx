@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useContabia } from "@/lib/store/ContabiaContext";
+import { exportarCSV } from "@/lib/utils/pdf";
 
 interface ClienteEmpresa {
   id: string;
@@ -63,10 +64,19 @@ export default function ClientesEmpresaPage() {
           <h2 className="text-2xl font-bold text-white">Clientes</h2>
           <p className="text-sm text-gray-500 mt-1">{clientes.length} cliente{clientes.length !== 1 ? "s" : ""} registrado{clientes.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
+        <div className="flex gap-2">
+          {clientes.length > 0 && (
+            <button onClick={() => exportarCSV("Clientes", ["Nombre", "RUC", "Email", "Teléfono", "Estado"],
+              clientes.map(c => [c.nombre, c.ruc ?? "", c.email ?? "", c.telefono ?? "", c.activo ? "Activo" : "Inactivo"])
+            )} className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition border border-gray-700">
+              ↓ CSV
+            </button>
+          )}
+          <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
           className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           {mostrarForm ? "Cancelar" : "+ Nuevo cliente"}
         </button>
+        </div>
       </div>
 
       {mensaje.texto && (
