@@ -53,6 +53,12 @@ const modulos = [
     ],
   },
   {
+    grupo: "Sistema",
+    items: [
+      { href: "/dashboard/autocare", label: "AUTOCARE", icono: "🔧" },
+    ],
+  },
+  {
     grupo: "Administración",
     items: [
       { href: "/dashboard/clientes", label: "Clientes plataforma", icono: "👥" },
