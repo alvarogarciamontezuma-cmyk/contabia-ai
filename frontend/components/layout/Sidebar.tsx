@@ -40,6 +40,13 @@ const modulos = [
     ],
   },
   {
+    grupo: "Recursos humanos",
+    items: [
+      { href: "/dashboard/empleados", label: "Empleados", icono: "👤" },
+      { href: "/dashboard/planilla", label: "Planilla", icono: "💵" },
+    ],
+  },
+  {
     grupo: "Administración",
     items: [
       { href: "/dashboard/clientes", label: "Clientes plataforma", icono: "👥" },
