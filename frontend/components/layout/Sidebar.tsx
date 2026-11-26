@@ -21,14 +21,23 @@ const modulos = [
       { href: "/dashboard/cierres", label: "Cierres de período", icono: "🔒" },
       { href: "/dashboard/reportes", label: "Reportes", icono: "📊" },
       { href: "/dashboard/itbms", label: "ITBMS", icono: "🧾" },
-      { href: "/dashboard/pagos", label: "Mi suscripción", icono: "💳" },
+    ],
+  },
+  {
+    grupo: "Ventas y compras",
+    items: [
+      { href: "/dashboard/clientes-empresa", label: "Clientes", icono: "🧑‍💼" },
+      { href: "/dashboard/facturas", label: "Facturas", icono: "🧾" },
+      { href: "/dashboard/proveedores", label: "Proveedores", icono: "🏭" },
+      { href: "/dashboard/compras", label: "Compras", icono: "🛒" },
     ],
   },
   {
     grupo: "Administración",
     items: [
-      { href: "/dashboard/clientes", label: "Clientes", icono: "👥" },
+      { href: "/dashboard/clientes", label: "Clientes plataforma", icono: "👥" },
       { href: "/dashboard/admin-pagos", label: "Pagos clientes", icono: "💰" },
+      { href: "/dashboard/pagos", label: "Mi suscripción", icono: "💳" },
       { href: "/dashboard/auditoria", label: "Auditoría", icono: "🔍" },
       { href: "/dashboard/configuracion", label: "Configuración", icono: "⚙" },
     ],
