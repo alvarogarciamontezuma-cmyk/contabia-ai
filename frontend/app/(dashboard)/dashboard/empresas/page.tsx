@@ -6,6 +6,7 @@ import { useContabia } from "@/lib/store/ContabiaContext";
 
 const PAISES = ["Panamá", "Costa Rica", "Colombia", "México"];
 const MONEDAS = ["USD", "CRC", "COP", "MXN"];
+const BANCOS_PANAMA = ["Banco General", "Banistmo", "Banco Nacional de Panamá", "BAC Credomatic", "Global Bank", "Multibank", "Otro"];
 
 interface EmpresaDetalle {
   id: string;
@@ -20,10 +21,13 @@ interface EmpresaDetalle {
   email_empresa: string | null;
   sitio_web: string | null;
   logo_url: string | null;
+  banco: string | null;
+  numero_cuenta: string | null;
+  yappy: string | null;
 }
 
 export default function EmpresasPage() {
-  const { empresas, cargandoEmpresas, agregarEmpresa, seleccionarEmpresa } = useContabia();
+  const { empresas, cargandoEmpresas, agregarEmpresa } = useContabia();
   const [montado, setMontado] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [empresaEditando, setEmpresaEditando] = useState<EmpresaDetalle | null>(null);
@@ -33,13 +37,13 @@ export default function EmpresasPage() {
   const [logoPreview, setLogoPreview] = useState<string>("");
 
   const [form, setForm] = useState({
-    nombre: "", nombreComercial: "", ruc: "", pais: "Panamá", moneda: "USD",
-    direccion: "", telefono: "", email: "", sitioWeb: "",
+    nombre: "", ruc: "", pais: "Panamá", moneda: "USD",
   });
 
   const [formEdicion, setFormEdicion] = useState({
     nombre: "", nombreComercial: "", ruc: "", pais: "", moneda: "",
     direccion: "", telefono: "", email: "", sitioWeb: "",
+    banco: "", numeroCuenta: "", yappy: "",
   });
 
   useEffect(() => { setMontado(true); }, []);
@@ -49,7 +53,7 @@ export default function EmpresasPage() {
     setMensaje({ texto: "", tipo: "" });
     if (!form.nombre.trim()) { setMensaje({ texto: "El nombre es obligatorio.", tipo: "error" }); return; }
     agregarEmpresa({ nombre: form.nombre.trim(), ruc: form.ruc.trim() || undefined, pais: form.pais, moneda: form.moneda, activa: true });
-    setForm({ nombre: "", nombreComercial: "", ruc: "", pais: "Panamá", moneda: "USD", direccion: "", telefono: "", email: "", sitioWeb: "" });
+    setForm({ nombre: "", ruc: "", pais: "Panamá", moneda: "USD" });
     setMostrarForm(false);
   }
 
@@ -59,10 +63,18 @@ export default function EmpresasPage() {
     if (data) {
       setEmpresaEditando(data as EmpresaDetalle);
       setFormEdicion({
-        nombre: data.nombre, nombreComercial: data.nombre_comercial ?? "",
-        ruc: data.ruc ?? "", pais: data.pais, moneda: data.moneda,
-        direccion: data.direccion ?? "", telefono: data.telefono ?? "",
-        email: data.email_empresa ?? "", sitioWeb: data.sitio_web ?? "",
+        nombre: data.nombre,
+        nombreComercial: data.nombre_comercial ?? "",
+        ruc: data.ruc ?? "",
+        pais: data.pais,
+        moneda: data.moneda,
+        direccion: data.direccion ?? "",
+        telefono: data.telefono ?? "",
+        email: data.email_empresa ?? "",
+        sitioWeb: data.sitio_web ?? "",
+        banco: data.banco ?? "",
+        numeroCuenta: data.numero_cuenta ?? "",
+        yappy: data.yappy ?? "",
       });
       setLogoPreview(data.logo_url ?? "");
     }
@@ -71,6 +83,7 @@ export default function EmpresasPage() {
   async function handleGuardarEdicion(e: React.FormEvent) {
     e.preventDefault();
     if (!empresaEditando) return;
+    if (!formEdicion.nombre.trim()) { setMensaje({ texto: "El nombre es obligatorio.", tipo: "error" }); return; }
     setGuardando(true);
     setMensaje({ texto: "", tipo: "" });
     const supabase = createSupabaseBrowserClient();
@@ -80,7 +93,9 @@ export default function EmpresasPage() {
     if (logoRef.current?.files?.[0]) {
       const archivo = logoRef.current.files[0];
       const ruta = `logos/${empresaEditando.id}/${Date.now()}.${archivo.name.split(".").pop()}`;
-      const { error: errLogo } = await supabase.storage.from("documentos").upload(ruta, archivo, { upsert: true });
+      const { error: errLogo } = await supabase.storage
+        .from("documentos")
+        .upload(ruta, archivo, { upsert: true, contentType: archivo.type });
       if (!errLogo) {
         const { data: urlData } = supabase.storage.from("documentos").getPublicUrl(ruta);
         logoUrl = urlData.publicUrl;
@@ -97,6 +112,9 @@ export default function EmpresasPage() {
       telefono: formEdicion.telefono.trim() || null,
       email_empresa: formEdicion.email.trim() || null,
       sitio_web: formEdicion.sitioWeb.trim() || null,
+      banco: formEdicion.banco.trim() || null,
+      numero_cuenta: formEdicion.numeroCuenta.trim() || null,
+      yappy: formEdicion.yappy.trim() || null,
       logo_url: logoUrl,
     }).eq("id", empresaEditando.id);
 
@@ -120,7 +138,8 @@ export default function EmpresasPage() {
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-3">
-          <button onClick={() => setEmpresaEditando(null)} className="text-gray-400 hover:text-white transition text-sm">← Volver</button>
+          <button onClick={() => { setEmpresaEditando(null); setMensaje({ texto: "", tipo: "" }); }}
+            className="text-gray-400 hover:text-white transition text-sm">← Volver</button>
           <h2 className="text-2xl font-bold text-white">Personalizar empresa</h2>
         </div>
 
@@ -130,77 +149,181 @@ export default function EmpresasPage() {
           </div>
         )}
 
-        <form onSubmit={handleGuardarEdicion} className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-5">
+        <form onSubmit={handleGuardarEdicion} className="space-y-6">
 
-          {/* Logo */}
-          <div className="space-y-2">
-            <label className="block text-sm text-gray-400">Logo de la empresa</label>
-            <div className="flex items-center gap-4">
-              {logoPreview && (
-                <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-gray-700 bg-gray-800" />
-              )}
-              <div>
-                <input ref={logoRef} type="file" accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) { const r = new FileReader(); r.onload = ev => setLogoPreview(ev.target?.result as string); r.readAsDataURL(f); }
-                  }}
-                  className="hidden" id="logo-input" />
-                <label htmlFor="logo-input" className="cursor-pointer bg-gray-800 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg transition border border-gray-700">
-                  {logoPreview ? "Cambiar logo" : "Subir logo"}
-                </label>
-                <p className="text-xs text-gray-600 mt-1">JPG, PNG, WEBP · Máx. 2 MB</p>
+          {/* ── Sección: Identidad visual ── */}
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              🎨 Identidad visual
+            </h3>
+
+            {/* Logo */}
+            <div className="space-y-2">
+              <label className="block text-sm text-gray-400">Logo de la empresa</label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-xl border border-gray-700 bg-gray-800 flex items-center justify-center overflow-hidden shrink-0">
+                  {logoPreview
+                    ? <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                    : <span className="text-3xl">🏢</span>
+                  }
+                </div>
+                <div className="space-y-2">
+                  <input ref={logoRef} type="file" accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        const r = new FileReader();
+                        r.onload = ev => setLogoPreview(ev.target?.result as string);
+                        r.readAsDataURL(f);
+                      }
+                    }}
+                    className="hidden" id="logo-input" />
+                  <label htmlFor="logo-input"
+                    className="cursor-pointer inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition">
+                    {logoPreview ? "Cambiar logo" : "Subir logo"}
+                  </label>
+                  {logoPreview && (
+                    <button type="button" onClick={() => setLogoPreview("")}
+                      className="block text-red-400 hover:text-red-300 text-xs transition">
+                      Eliminar logo
+                    </button>
+                  )}
+                  <p className="text-xs text-gray-600">JPG, PNG, WEBP · Máx. 2 MB · Aparecerá en tus facturas</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Campos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { id: "enombre", label: "Nombre legal *", campo: "nombre" as const, placeholder: "Empresa S.A." },
-              { id: "ecomercial", label: "Nombre comercial", campo: "nombreComercial" as const, placeholder: "Nombre que aparece en facturas" },
-              { id: "eruc", label: "RUC", campo: "ruc" as const, placeholder: "155-123-456" },
-              { id: "etelefono", label: "Teléfono", campo: "telefono" as const, placeholder: "507-6000-0000" },
-              { id: "eemail", label: "Correo de la empresa", campo: "email" as const, placeholder: "info@empresa.com" },
-              { id: "eweb", label: "Sitio web", campo: "sitioWeb" as const, placeholder: "www.empresa.com" },
-            ].map(({ id, label, campo, placeholder }) => (
-              <div key={id} className="space-y-1">
-                <label htmlFor={id} className="block text-sm text-gray-400">{label}</label>
-                <input id={id} type="text" value={formEdicion[campo]}
-                  onChange={(e) => setFormEdicion({ ...formEdicion, [campo]: e.target.value })}
-                  placeholder={placeholder}
+            {/* Nombre */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Nombre legal <span className="text-red-500">*</span></label>
+                <input type="text" value={formEdicion.nombre}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, nombre: e.target.value })}
+                  placeholder="Empresa S.A."
                   className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-            ))}
-            <div className="space-y-1 sm:col-span-2">
-              <label className="block text-sm text-gray-400">Dirección</label>
-              <input type="text" value={formEdicion.direccion}
-                onChange={(e) => setFormEdicion({ ...formEdicion, direccion: e.target.value })}
-                placeholder="Dirección completa de la empresa"
-                className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm text-gray-400">País</label>
-              <select value={formEdicion.pais} onChange={(e) => setFormEdicion({ ...formEdicion, pais: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {PAISES.map(p => <option key={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm text-gray-400">Moneda</label>
-              <select value={formEdicion.moneda} onChange={(e) => setFormEdicion({ ...formEdicion, moneda: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {MONEDAS.map(m => <option key={m}>{m}</option>)}
-              </select>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Nombre comercial</label>
+                <input type="text" value={formEdicion.nombreComercial}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, nombreComercial: e.target.value })}
+                  placeholder="Nombre que aparece en facturas y documentos"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          {/* ── Sección: Datos fiscales ── */}
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              📋 Datos fiscales e identificación
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">RUC</label>
+                <input type="text" value={formEdicion.ruc}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, ruc: e.target.value })}
+                  placeholder="155-123-456"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">País</label>
+                <select value={formEdicion.pais} onChange={(e) => setFormEdicion({ ...formEdicion, pais: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {PAISES.map(p => <option key={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Moneda</label>
+                <select value={formEdicion.moneda} onChange={(e) => setFormEdicion({ ...formEdicion, moneda: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {MONEDAS.map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Sección: Contacto ── */}
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              📞 Información de contacto
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Teléfono</label>
+                <input type="text" value={formEdicion.telefono}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, telefono: e.target.value })}
+                  placeholder="507-6000-0000"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Correo electrónico</label>
+                <input type="email" value={formEdicion.email}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, email: e.target.value })}
+                  placeholder="info@empresa.com"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Sitio web</label>
+                <input type="text" value={formEdicion.sitioWeb}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, sitioWeb: e.target.value })}
+                  placeholder="www.empresa.com"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-sm text-gray-400">Dirección</label>
+                <input type="text" value={formEdicion.direccion}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, direccion: e.target.value })}
+                  placeholder="Dirección completa de la empresa"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Sección: Datos de pago ── */}
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              💳 Datos de pago
+              <span className="text-xs text-gray-600 font-normal">(aparecen en facturas y cotizaciones)</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Banco</label>
+                <select value={formEdicion.banco}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, banco: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Sin banco</option>
+                  {BANCOS_PANAMA.map(b => <option key={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm text-gray-400">Número de cuenta</label>
+                <input type="text" value={formEdicion.numeroCuenta}
+                  onChange={(e) => setFormEdicion({ ...formEdicion, numeroCuenta: e.target.value })}
+                  placeholder="03-30-01-000000-0"
+                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-sm text-gray-400">Usuario de Yappy</label>
+                <div className="flex">
+                  <span className="bg-gray-700 border border-r-0 border-gray-600 text-gray-400 px-3 py-2 rounded-l-lg text-sm">@</span>
+                  <input type="text" value={formEdicion.yappy}
+                    onChange={(e) => setFormEdicion({ ...formEdicion, yappy: e.target.value })}
+                    placeholder="tuusuarioyappy"
+                    className="flex-1 bg-gray-800 border border-gray-700 text-white placeholder-gray-600 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <p className="text-xs text-gray-600">Aparecerá en las facturas para facilitar el pago de tus clientes.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3">
             <button type="submit" disabled={guardando}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 text-white text-sm font-medium px-5 py-2 rounded-lg transition">
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition">
               {guardando ? "Guardando..." : "Guardar cambios"}
             </button>
-            <button type="button" onClick={() => setEmpresaEditando(null)} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition">
+            <button type="button" onClick={() => { setEmpresaEditando(null); setMensaje({ texto: "", tipo: "" }); }}
+              className="text-gray-400 hover:text-white text-sm px-4 py-2.5 rounded-lg transition">
               Cancelar
             </button>
           </div>
@@ -215,7 +338,9 @@ export default function EmpresasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Empresas</h2>
-          <p className="text-sm text-gray-500 mt-1">{empresas.length} empresa{empresas.length !== 1 ? "s" : ""} registrada{empresas.length !== 1 ? "s" : ""}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {empresas.length} empresa{empresas.length !== 1 ? "s" : ""} registrada{empresas.length !== 1 ? "s" : ""}
+          </p>
         </div>
         <button onClick={() => { setMostrarForm((v) => !v); setMensaje({ texto: "", tipo: "" }); }}
           className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -261,8 +386,13 @@ export default function EmpresasPage() {
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Guardar empresa</button>
-            <button type="button" onClick={() => setMostrarForm(false)} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition">Cancelar</button>
+            <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              Guardar empresa
+            </button>
+            <button type="button" onClick={() => setMostrarForm(false)}
+              className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition">
+              Cancelar
+            </button>
           </div>
         </form>
       )}
@@ -279,9 +409,11 @@ export default function EmpresasPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs bg-green-950 text-green-400 border border-green-800 rounded-full px-3 py-1">Activa</span>
+              <span className="text-xs bg-green-950 text-green-400 border border-green-800 rounded-full px-3 py-1">
+                Activa
+              </span>
               <button onClick={() => cargarDetalle(emp.id)}
-                className="text-blue-400 hover:text-blue-300 text-xs transition">
+                className="text-blue-400 hover:text-blue-300 text-xs transition border border-blue-800 rounded-lg px-3 py-1">
                 ✏ Personalizar
               </button>
             </div>
