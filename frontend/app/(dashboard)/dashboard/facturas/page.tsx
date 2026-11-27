@@ -27,6 +27,7 @@ interface Factura {
   itbms: number;
   total: number;
   estado: string;
+  notas: string | null;
   clientes_empresa: { nombre: string } | null;
 }
 
@@ -309,16 +310,37 @@ export default function FacturasPage() {
                   <td className="px-5 py-3 text-center">
                     <div className="flex gap-2 justify-center">
                       <button onClick={async () => {
-                        // Cargar líneas de la factura para el PDF
                         const supabase = createSupabaseBrowserClient();
                         const { data: lineasDB } = await supabase.from("lineas_factura").select("*").eq("factura_id", f.id);
+                        // Cargar datos completos de la empresa
+                        const { data: empData } = await supabase.from("empresas").select("*").eq("id", empresaActual!.id).single();
+                        // Cargar datos del cliente si existe
+                        let clienteData: any = null;
+                        if (f.clientes_empresa) {
+                          const { data: cd } = await supabase.from("clientes_empresa").select("*").eq("empresa_id", empresaActual!.id).eq("nombre", f.clientes_empresa.nombre).single();
+                          clienteData = cd;
+                        }
                         generarFacturaPDF({
-                          empresa: { nombre: empresaActual?.nombre ?? "", ruc: empresaActual?.ruc },
-                          cliente: f.clientes_empresa?.nombre ?? null,
+                          empresa: {
+                            nombre: empData?.nombre ?? empresaActual?.nombre ?? "",
+                            nombreComercial: empData?.nombre_comercial,
+                            ruc: empData?.ruc,
+                            direccion: empData?.direccion,
+                            telefono: empData?.telefono,
+                            email: empData?.email_empresa,
+                            sitioWeb: empData?.sitio_web,
+                            moneda: empData?.moneda ?? "USD",
+                          },
+                          clienteNombre: f.clientes_empresa?.nombre ?? null,
+                          clienteRuc: clienteData?.ruc ?? null,
+                          clienteDireccion: clienteData?.direccion ?? null,
+                          clienteTelefono: clienteData?.telefono ?? null,
                           numero: f.numero,
                           tipo: f.tipo,
                           fecha: new Date(f.fecha).toLocaleDateString("es-PA"),
                           fechaVencimiento: f.fecha_vencimiento ? new Date(f.fecha_vencimiento).toLocaleDateString("es-PA") : null,
+                          validezDias: f.tipo === "cotizacion" ? 7 : null,
+                          condicionPago: f.tipo === "cotizacion" ? "Crédito a 30 días" : null,
                           lineas: (lineasDB ?? []).map((l: any) => ({
                             descripcion: l.descripcion,
                             cantidad: Number(l.cantidad),
@@ -329,8 +351,10 @@ export default function FacturasPage() {
                             total: Number(l.total),
                           })),
                           subtotal: f.subtotal,
+                          descuento: 0,
                           itbms: f.itbms,
                           total: f.total,
+                          notas: f.notas,
                         });
                       }} className="text-green-400 hover:text-green-300 text-xs transition">
                         ↓ PDF
